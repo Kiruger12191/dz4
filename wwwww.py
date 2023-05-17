@@ -38,8 +38,8 @@ def create_db(conn):
 # Добавление нового клиента
 def add_client(conn):
     print('''Введите данные нового клиента.
-             Имя, фамилия и email - обязательные данные.
-             Если телефона нет, пропустите данный запрос.
+             Имя, фамилия, email - обязательны.
+             Если телефон отсутствует, пропустите запрос.
              --------------------------------------------''')
 
     first_name = input('Введите имя: ')
@@ -82,7 +82,7 @@ def db_show(conn):
 # Выбор id клиента
 def choice_id():
     print('Выберите id клиента из таблицы.')
-    _ = input('Для вывода таблицы нажмите клавишу Enter.')
+    _ = input('Для вывода таблицы нажмите Enter.')
     db_show(conn)
 
 
@@ -103,7 +103,7 @@ def add_phone(conn):
 # Изменить данные о клиенте
 def change_client(conn):
     choice_id()
-    client_id = input('Введите id клиента, данные которого хотите изменить: ')
+    client_id = input('Введите id клиента, для изменения: ')
     first_name = input('Введите имя: ')
     last_name = input('Введите фамилию: ')
     email = input('Введите email: ')
@@ -122,20 +122,20 @@ def change_client(conn):
             VALUES ({int(client_id)}, {int(phone)})
             ;''')
 
-    print(f'Данные для клиента id-{client_id} обновлены.')
+    print(f'Данные клиента id-{client_id} обновлены.')
 
 
 # Удалить телефон
 def delete_phone(conn):
     choice_id()
-    phone = input('Введите телефон, который хотите удалить: ')
+    phone = input('Введите телефон, для удаления: ')
     with conn.cursor() as cur:
         cur.execute('''
         DELETE FROM client_phone
         WHERE phone=%s
         ;''', (phone,))
 
-    print(f'Телефон {phone} удалён из базы данных.')
+    print(f'Телефон {phone} удалён.')
 
 
 # Удаление клиента из базы данных
@@ -162,7 +162,7 @@ def delete_client(conn):
         WHERE client_id=%s
         ;''', (int(client_id),))
 
-    print(f'Клиент {info[0]} {info[1]} удалён из базы данных.')
+    print(f'Клиент {info[0]} {info[1]} удалён.')
 
 
 # Поиск клиента
