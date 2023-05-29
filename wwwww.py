@@ -1,61 +1,22 @@
-import psycopg2
-from prettytable import PrettyTable
-
-help = '''
-    Управление базой данных клиентов.
-    ________________________________
-    Команды:
-    add_c - добавить нового клиента;
-    add_p - добавить телефон существующему клиенту;
-    сh_сl - изменить данные о клиенте;
-    delet_p - удалить телефон из базы данных;
-    delet_c - удалить клиента из базы данных;
-    find_c - найти клиента по имени, фамилии, email или телефону;
-    db_s - показать всю базу данных клиентов;
-    help  - показать список команд;
-    exit  - выход из программы.
-    '''
-
-# Создание базы данных
-def create_db(conn):
-    with conn.cursor() as cur:
-        cur.execute('''
-        CREATE TABLE IF NOT EXISTS client(
-            client_id SERIAL PRIMARY KEY,
-            first_name VARCHAR(20) NOT NULL,
-            last_name VARCHAR(20) NOT NULL,
-            email VARCHAR(30) NOT NULL UNIQUE
-            );''')
-
-        cur.execute('''
-        CREATE TABLE IF NOT EXISTS client_phone(
-            id SERIAL PRIMARY KEY,
-            client_id INT REFERENCES client(client_id),
-            phone BIGINT UNIQUE
-            );''')
-
-
 # Добавление нового клиента
-def add_client(conn):
+def add_client(cur):
     print('''Введите данные нового клиента.
-             Имя, фамилия, email - обязательны.
-             Если телефон отсутствует, пропустите запрос.
+             Имя, фамилия и email - обязательные данные.
+             Если телефона нет, пропустите данный запрос.
              --------------------------------------------''')
 
     first_name = input('Введите имя: ')
     last_name = input('Введите фамилию: ')
     email = input('Введите email: ')
     phone = input('Введите номер телефона: ')
-    with conn.cursor() as cur:
-        cur.execute(f'''
+    cur.execute(f'''
         INSERT INTO client(first_name, last_name, email)
         VALUES ('{first_name}', '{last_name}', '{email}')
         RETURNING client_id;''')
 
-        client_id = cur.fetchone()[0]
+    client_id = cur.fetchone()[0]
 
     if phone != '':
-        with conn.cursor() as cur:
             cur.execute(f'''
             INSERT INTO client_phone(client_id, phone)
             VALUES ({client_id}, {phone})
@@ -63,8 +24,7 @@ def add_client(conn):
 
 
 # Вывод всех клиентов
-def db_show(conn):
-    with conn.cursor() as cur:
+def db_show(cur):
         cur.execute('''
         SELECT c.client_id, last_name, first_name, email, phone
         FROM client c
@@ -82,17 +42,16 @@ def db_show(conn):
 # Выбор id клиента
 def choice_id():
     print('Выберите id клиента из таблицы.')
-    _ = input('Для вывода таблицы нажмите Enter.')
+    _ = input('Для вывода таблицы нажмите клавишу Enter.')
     db_show(conn)
 
 
 # Добавить номер телефона клиенту
-def add_phone(conn):
+def add_phone(cur):
     choice_id()
     client_id = input('Введите id клиента: ')
     phone = input('Введите номер телефона: ')
-    with conn.cursor() as cur:
-        cur.execute(f'''
+    cur.execute(f'''
         INSERT INTO client_phone(client_id, phone)
         VALUES ({int(client_id)}, {int(phone)})
         ;''')
@@ -101,103 +60,96 @@ def add_phone(conn):
 
 
 # Изменить данные о клиенте
-def change_client(conn):
+def change_client(cur):
     choice_id()
-    client_id = input('Введите id клиента, для изменения: ')
+    client_id = input('Введите id клиента, данные которого хотите изменить: ')
     first_name = input('Введите имя: ')
     last_name = input('Введите фамилию: ')
     email = input('Введите email: ')
     phone = input('Введите номер телефона: ')
-    with conn.cursor() as cur:
-        cur.execute('''
+    cur.execute('''
         UPDATE client
         SET first_name=%s, last_name=%s, email=%s
         WHERE client_id=%s
         ;''', (first_name, last_name, email, int(client_id)))
 
     if phone != '':
-        with conn.cursor() as cur:
-            cur.execute(f'''
+        cur.execute(f'''
             INSERT INTO client_phone(client_id, phone)
             VALUES ({int(client_id)}, {int(phone)})
             ;''')
 
-    print(f'Данные клиента id-{client_id} обновлены.')
+    print(f'Данные для клиента id-{client_id} обновлены.')
 
 
 # Удалить телефон
-def delete_phone(conn):
+def delete_phone(cur):
     choice_id()
-    phone = input('Введите телефон, для удаления: ')
-    with conn.cursor() as cur:
-        cur.execute('''
+    phone = input('Введите телефон, который хотите удалить: ')
+    cur.execute('''
         DELETE FROM client_phone
         WHERE phone=%s
         ;''', (phone,))
 
-    print(f'Телефон {phone} удалён.')
+    print('Телефон {phone} удалён из базы данных.')
 
 
 # Удаление клиента из базы данных
-def delete_client(conn):
+def delete_client(cur):
     choice_id()
     client_id = input('Введите id клиента: ')
-    with conn.cursor() as cur:
-        cur.execute('''
+    cur.execute('''
         SELECT first_name, last_name
         FROM client
         WHERE client_id=%s
         ;''', (int(client_id),))
 
-        info = cur.fetchone()
+    info = cur.fetchone()
 
-    with conn.cursor() as cur:
-        cur.execute('''
+    cur.execute('''
         DELETE FROM client_phone
         WHERE client_id=%s
         ;''', (int(client_id),))
 
-        cur.execute('''
+    cur.execute('''
         DELETE FROM client
         WHERE client_id=%s
         ;''', (int(client_id),))
 
-    print(f'Клиент {info[0]} {info[1]} удалён.')
+    print(f'Клиент {info[0]} {info[1]} удалён из базы данных.')
 
 
 # Поиск клиента
-def find_client(conn):
+def find_client(cur):
     data = input('Введите имя, фамилию, email или телефон: ')
     if data.isalpha():
-        with conn.cursor() as cur:
-            cur.execute('''
+        cur.execute('''
             SELECT c.client_id, last_name, first_name, email, phone
             FROM client c
             JOIN client_phone cp ON c.client_id = cp.client_id
             WHERE first_name=%s
-            OR last_name=%s
-            OR email=%s
+            AND last_name=%s
+            AND email=%s
             ;''', (data, data, data))
-            return_db = cur.fetchall()
-            table = PrettyTable(['client_id', 'last_name',
+        return_db = cur.fetchall()
+        table = PrettyTable(['client_id', 'last_name',
                                  'first_name', 'email', 'phone'])
-            for i in return_db:
-                table.add_row(list(i))
-            print(table)
+        for i in return_db:
+            table.add_row(list(i))
+        print(table)
     else:
-        with conn.cursor() as cur:
-            cur.execute('''
+        cur.execute('''
             SELECT c.client_id, last_name, first_name, email, phone
             FROM client c
             JOIN client_phone cp ON c.client_id = cp.client_id
             WHERE phone=%s
             ;''', (data,))
-            return_db = cur.fetchall()
-            table = PrettyTable(['client_id', 'last_name',
+        return_db = cur.fetchall()
+        table = PrettyTable(['client_id', 'last_name',
                                  'first_name', 'email', 'phone'])
-            for i in return_db:
-                table.add_row(list(i))
-            print(table)
+        for i in return_db:
+            table.add_row(list(i))
+        print(table)
 
 # Словарь с функциями.
 func = {
@@ -215,14 +167,12 @@ if __name__ == '__main__':
     command = input('Введите команду: ')
     with psycopg2.connect(database="test2", user="postgres", password="05hutopu") as conn:
         create_db(conn)
-        conn.commit()
         while command != 'exit':
             if command == 'help':
                 print(help)
                 command = input('Введите новую команду: ')
             else:
                 func[command](conn)
-                conn.commit()
                 command = input('Введите новую команду: ')
-
+with conn.cursor() as cur:
     conn.close()
