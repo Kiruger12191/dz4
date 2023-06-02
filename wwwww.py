@@ -128,8 +128,8 @@ def find_client(cur):
             FROM client c
             JOIN client_phone cp ON c.client_id = cp.client_id
             WHERE first_name=%s
-            AND last_name=%s
-            AND email=%s
+            OR last_name=%s
+            OR email=%s
             ;''', (data, data, data))
         return_db = cur.fetchall()
         table = PrettyTable(['client_id', 'last_name',
