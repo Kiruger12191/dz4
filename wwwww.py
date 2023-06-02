@@ -91,7 +91,7 @@ def delete_phone(cur):
         WHERE phone=%s
         ;''', (phone,))
 
-    print('Телефон {phone} удалён из базы данных.')
+    print(f'Телефон {phone} удалён из базы данных.')
 
 
 # Удаление клиента из базы данных
